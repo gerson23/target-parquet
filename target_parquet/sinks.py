@@ -57,7 +57,7 @@ class ParquetSink(BatchSink):
         self.validation()
 
     @property
-    def basename_template(self, ) -> str:
+    def basename_template(self) -> str:
         """Returns the basename template for the parquet file."""
         timestamp = datetime.fromtimestamp(
             self.sync_started_at / 1000, tz=timezone.utc
