@@ -124,7 +124,7 @@ class ParquetSink(BatchSink):
 
         self.write_file(new_file=get_pyarrow_table_size(self.pyarrow_df) > self.config["max_pyarrow_table_size"])
 
-    def write_file(self, new_file: bool=False) -> str:
+    def write_file(self, new_file: bool) -> None:
         """
         Write a local file.
         return the file path.
