@@ -225,7 +225,8 @@ def test_e2e_create_file_with_null_fields(monkeypatch, test_output_dir, sample_c
         finalize=True,
     )
 
-    assert len(os.listdir(test_output_dir / stream_name)[0])
+    expected_file_name = stream_name + '-20231114_221320-0-0.gz.parquet'
+    assert os.listdir(test_output_dir / stream_name)[0] == expected_file_name
 
     expected = pd.DataFrame(
         [
@@ -348,7 +349,7 @@ def test_e2e_multiple_files(monkeypatch, test_output_dir, sample_config):
 
     result = pd.read_parquet(test_output_dir / stream_name)
     assert result.shape == (1000000, 8)
-    assert len(os.listdir(test_output_dir / stream_name)) > 1
+    assert len(os.listdir(test_output_dir / stream_name)) == 100
 
 
 def test_e2e_extra_fields(

@@ -57,13 +57,12 @@ class ParquetSink(BatchSink):
         self.validation()
 
     @property
-    def basename_template(self) -> str:
+    def basename_template(self, ) -> str:
         """Returns the basename template for the parquet file."""
         timestamp = datetime.fromtimestamp(
             self.sync_started_at / 1000, tz=timezone.utc
         ).strftime("%Y%m%d_%H%M%S")
         basename_template = f"{self.stream_name}-{timestamp}-{self.files_saved}-{{i}}"
-        self.files_saved += 1
         return basename_template
 
     def validation(self) -> None:
@@ -122,14 +121,16 @@ class ParquetSink(BatchSink):
             f"Pyarrow table size: {self.pyarrow_df.nbytes} | ({len(self.pyarrow_df)} rows)"
         )
         del context["records"]
-        if (
-            get_pyarrow_table_size(self.pyarrow_df)
-            > self.config["max_pyarrow_table_size"]
-        ):
-            self.write_file()
 
-    def write_file(self) -> None:
-        """Write a local file."""
+        self.write_file(new_file=get_pyarrow_table_size(self.pyarrow_df) > self.config["max_pyarrow_table_size"])
+
+    def write_file(self, new_file: bool=False) -> str:
+        """
+        Write a local file.
+        return the file path.
+
+        :param new_file: bool - if True, write a new file.
+        """
         if self.pyarrow_df is not None:
             write_parquet_file(
                 self.pyarrow_df,
@@ -138,9 +139,11 @@ class ParquetSink(BatchSink):
                 basename_template=self.basename_template,
                 partition_cols=self.partition_cols,
             )
-            self.pyarrow_df = None
+            if new_file:
+                self.files_saved += 1
+                self.pyarrow_df = None
 
     def clean_up(self) -> None:
         """Perform any clean up actions required at end of a stream."""
-        self.write_file()
+        self.write_file(new_file=True)
         super().clean_up()
