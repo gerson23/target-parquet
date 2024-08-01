@@ -225,7 +225,8 @@ def test_e2e_create_file_with_null_fields(monkeypatch, test_output_dir, sample_c
         finalize=True,
     )
 
-    assert len(os.listdir(test_output_dir / stream_name)[0])
+    expected_file_name = stream_name + '-20231114_221320-0-0.gz.parquet'
+    assert os.listdir(test_output_dir / stream_name)[0] == expected_file_name
 
     expected = pd.DataFrame(
         [
@@ -297,7 +298,14 @@ def test_e2e_more_records_than_batch_size(monkeypatch, test_output_dir, sample_c
     assert len(os.listdir(test_output_dir / stream_name)) == 1
 
 
-def test_e2e_multiple_files(monkeypatch, test_output_dir, sample_config):
+@pytest.mark.parametrize(("max_pyarrow_table_size", 'files_count'),
+                         [
+                            pytest.param(1, 100, id="max_pyarrow_table_size=1"),
+                            pytest.param(10, 10, id="max_pyarrow_table_size=10"),
+                            pytest.param(1000, 1, id="max_pyarrow_table_size=100"),
+                         ]
+)
+def test_e2e_multiple_files(monkeypatch, test_output_dir, sample_config, max_pyarrow_table_size, files_count):
     """Test that the target creates multiple files when the pyarrow file size limit is reached"""
     monkeypatch.setattr("time.time", lambda: 1700000000)
     stream_name = f"test_schema_{str(uuid4()).split('-')[-1]}"
@@ -341,15 +349,14 @@ def test_e2e_multiple_files(monkeypatch, test_output_dir, sample_config):
     )
 
     target_sync_test(
-        TargetParquet(config=sample_config | {"max_pyarrow_table_size": 1}),
+        TargetParquet(config=sample_config | {"max_pyarrow_table_size": max_pyarrow_table_size}),
         input=StringIO(tap_output),
         finalize=True,
     )
 
     result = pd.read_parquet(test_output_dir / stream_name)
     assert result.shape == (1000000, 8)
-    assert len(os.listdir(test_output_dir / stream_name)) > 1
-
+    assert len(os.listdir(test_output_dir / stream_name)) == files_count
 
 def test_e2e_extra_fields(
         monkeypatch, test_output_dir, sample_config, example1_schema_messages
