@@ -15,6 +15,7 @@ from target_parquet.sinks import (
 
 
 class DecimalEncoder(json.JSONEncoder):
+    """JSON encoder for Decimal used in state."""
     def default(self, obj):
         if isinstance(obj, Decimal):
             return float(obj)
@@ -75,8 +76,7 @@ class TargetParquet(Target):
 
 
     def _write_state_message(self, state: dict) -> None:
-        """Emit the stream's latest state.
-        """
+        """Emit the stream's latest state."""
         state_json = json.dumps(state, cls=DecimalEncoder)
         self.logger.info("Emitting completed target state %s", state_json)
         sys.stdout.write(f"{state_json}\n")
