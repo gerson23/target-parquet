@@ -172,5 +172,3 @@ def test_get_pyarrow_table_size(sample_data, sample_schema):
     # Check if the result is a non-negative float
     assert isinstance(size_in_mb, float)
     assert pytest.approx(size_in_mb, 0.1) == 7.15
-
-
