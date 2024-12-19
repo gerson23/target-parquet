@@ -2,12 +2,24 @@
 
 from __future__ import annotations
 
+import json
+import sys
+from decimal import Decimal
+
 from singer_sdk import typing as th
 from singer_sdk.target_base import Target
 
 from target_parquet.sinks import (
     ParquetSink,
 )
+
+
+class DecimalEncoder(json.JSONEncoder):
+    """JSON encoder for Decimal used in state."""
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            return float(obj)
+        return super().default(obj)
 
 
 class TargetParquet(Target):
@@ -61,6 +73,14 @@ class TargetParquet(Target):
     ).to_dict()
 
     default_sink_class = ParquetSink
+
+
+    def _write_state_message(self, state: dict) -> None:
+        """Emit the stream's latest state."""
+        state_json = json.dumps(state, cls=DecimalEncoder)
+        self.logger.info("Emitting completed target state %s", state_json)
+        sys.stdout.write(f"{state_json}\n")
+        sys.stdout.flush()
 
 
 if __name__ == "__main__":
