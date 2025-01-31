@@ -18,7 +18,7 @@ requests = "~=2.31.0"
 pyarrow = "~=14.0.2"
 numpy = "<2.0.0"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
 pytest = ">=7.4.0"
 singer-sdk = { version="~=0.44.1", extras = ["testing"] }
 pandas = "*"
