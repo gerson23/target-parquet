@@ -25,5 +25,7 @@ plugins:
     - name: extra_fields
     - name: extra_fields_types
     - name: partition_cols
+    - name: max_flatten_level
+      kind: integer
     config:
       start_date: '2010-01-01T00:00:00Z'

@@ -55,6 +55,12 @@ class TargetParquet(Target):
             default=10000,
         ),
         th.Property(
+            "max_flatten_level",
+            th.IntegerType,
+            description="Max level of nesting to flatten",
+            default=100,
+        ),
+        th.Property(
             "extra_fields",
             th.StringType,
             description="Extra fields to add to the flattened record. "

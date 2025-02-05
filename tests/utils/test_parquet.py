@@ -66,6 +66,42 @@ def test_flatten_schema_to_pyarrow_schema():
     assert pyarrow_schema == expected_pyarrow_schema
 
 
+def test_no_flatten_schema_to_pyarrow():
+    schema = {
+        "type": "object",
+        "properties": {
+            "str": {"type": ["null", "string"]},
+            "int": {"type": ["null", "integer"]},
+            "decimal": {"type": ["null", "number"]},
+            "nested": {
+                "type": "object",
+                "properties": {
+                    "nested_str": {"type": ["null", "string"]},
+                    "nested_int": {"type": ["null", "integer"]},
+                    "deep_nested": {
+                        "type": "object",
+                        "properties": {
+                            "deep_str": {"type": ["null", "string"]},
+                        },
+                    },
+                },
+            },
+        },
+    }
+
+    flatten_schema_result = flatten_schema(schema, max_level=0)
+    pyarrow_schema = flatten_schema_to_pyarrow_schema(flatten_schema_result)
+    expected_pyarrow_schema = pa.schema(
+        [
+            pa.field("str", pa.string()),
+            pa.field("int", pa.int64()),
+            pa.field("decimal", pa.float64()),
+            pa.field("nested", pa.string()),
+        ]
+    )
+
+    assert pyarrow_schema == expected_pyarrow_schema
+
 @pytest.mark.parametrize(
     "field_name, input_types, expected_result",
     [
