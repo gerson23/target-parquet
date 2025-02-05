@@ -19,8 +19,6 @@ from target_parquet.utils.parquet import (
 class ParquetSink(BatchSink):
     """parquet target sink class."""
 
-    flatten_max_level = 100  # Max level of nesting to flatten
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.pyarrow_df = None
@@ -28,6 +26,7 @@ class ParquetSink(BatchSink):
             self.config.get("destination_path", "output"), self.stream_name
         )
         self.files_saved = 0
+        self.flatten_max_level = self.config.get("max_flatten_level", 100)
 
         # Extra fields
         self.extra_values = (
