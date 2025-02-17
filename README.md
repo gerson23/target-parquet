@@ -33,6 +33,7 @@ pipx install git+https://github.com/Automattic/target-parquet.git@main
 | extra_fields          | False    |  None   | Extra fields to add to the flattened record. (e.g. extra_col1=value1,extra_col2=value2) |
 | extra_fields_types    | False    |  None   | Extra fields types. (e.g. extra_col1=string,extra_col2=integer) |
 | partition_cols        | False    |  None   | Extra fields to add to the flattened record. (e.g. extra_col1,extra_col2) |
+| cast_by_format        | False    |  False  | Convert string fields to their respective format schema field (supports `singer.decimal` and `date-time` currently) |
 
 A full list of supported settings and capabilities for this
 target is available by running:

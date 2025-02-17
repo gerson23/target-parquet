@@ -76,6 +76,11 @@ class TargetParquet(Target):
             th.StringType,
             description="Extra fields to add to the flattened record. (e.g. extra_col1,extra_col2)",
         ),
+        th.Property(
+            "cast_by_format",
+            th.BooleanType,
+            description="Cast field by format type (e.g. singer.decimal, date-time) instead of type",
+        ),
     ).to_dict()
 
     default_sink_class = ParquetSink

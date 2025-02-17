@@ -13,6 +13,7 @@ FIELD_TYPE_TO_PYARROW = {
     "ARRAY": pa.string(),
     "INTEGER": pa.int64(),
     "NUMBER": pa.float64(),
+    "DATETIME": pa.timestamp("us", tz=None),
     "OBJECT": pa.string(),
 }
 
@@ -25,11 +26,21 @@ EXTENSION_MAPPING = {
     "lz4": ".lz4",
 }
 
+FORMAT_MAPPING = {
+    "singer.decimal": "NUMBER",
+    "date-time": "DATETIME",
+}
+
 logger = logging.getLogger(__name__)
 
+def _cast_input_type_by_format(format: str, input_type: str) -> str:
+    # Only cast by format if type is STRING
+    if input_type != "STRING":
+        return input_type
+    return FORMAT_MAPPING.get(format, input_type)
 
 def _field_type_to_pyarrow_field(
-    field_name: str, input_types: dict, required_fields: list[str]
+    field_name: str, input_types: dict, required_fields: list[str], cast_by_format: bool
 ) -> pa.Field:
     types = input_types.get("type", [])
     # If type is not defined, check if anyOf is defined
@@ -46,11 +57,14 @@ def _field_type_to_pyarrow_field(
     if "NULL" in types_uppercase:
         types_uppercase.remove("NULL")
     input_type = next(iter(types_uppercase)) if types_uppercase else ""
+    
+    if cast_by_format and (format := input_types.get("format", None)):
+        input_type = _cast_input_type_by_format(format, input_type)
     pyarrow_type = FIELD_TYPE_TO_PYARROW.get(input_type, pa.string())
     return pa.field(field_name, pyarrow_type, nullable)
 
 
-def flatten_schema_to_pyarrow_schema(flatten_schema_dictionary: dict) -> pa.Schema:
+def flatten_schema_to_pyarrow_schema(flatten_schema_dictionary: dict, cast_by_format: bool) -> pa.Schema:
     """Function that converts a flatten schema to a pyarrow schema in a defined order.
 
     E.g:
@@ -76,7 +90,7 @@ def flatten_schema_to_pyarrow_schema(flatten_schema_dictionary: dict) -> pa.Sche
     return pa.schema(
         [
             _field_type_to_pyarrow_field(
-                field_name, field_input_types, required_fields=required_fields
+                field_name, field_input_types, required_fields=required_fields, cast_by_format=cast_by_format
             )
             for field_name, field_input_types in flatten_schema.items()
         ]

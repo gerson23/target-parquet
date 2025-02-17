@@ -1,3 +1,4 @@
+from datetime import datetime
 import json
 import os.path
 from io import StringIO
@@ -23,6 +24,11 @@ def sample_config(test_output_dir):
         "destination_path": str(test_output_dir),
     }
 
+@pytest.fixture(scope="session")
+def by_format_config(sample_config):
+    config = sample_config.copy()
+    config["cast_by_format"] = True
+    return config
 
 @pytest.fixture()
 def example1_schema_messages():
@@ -101,6 +107,39 @@ def example2_schema_messages_mixed():
         "messages": tap_output,
     }
 
+@pytest.fixture()
+def example3_schema_messages_format_types():
+    stream_name = f"test_schema_{str(uuid4()).split('-')[-1]}"
+    schema_message = {
+        "type": "SCHEMA",
+        "stream": stream_name,
+        "schema": {
+            "type": "object",
+            "properties": {
+                "col_a": {"type": ["null", "string"], "format": "date-time"},
+                "col_b": {"type": ["null", "string"], "format": "singer.decimal"},
+                "col_c": {"type": ["null", "string"]},
+            }
+        },
+    }
+    tap_output = "\n".join(
+        json.dumps(msg)
+        for msg in [
+            schema_message,
+            {
+                "type": "RECORD",
+                "stream": stream_name,
+                "record": {"col_a": "2024-04-06 00:02:43.280000Z",
+                           "col_b": "0.0009884326718747616",
+                           "col_c": "1234"},
+            }
+        ]
+    )
+    return {
+        "stream_name": stream_name,
+        "schema": schema_message,
+        "messages": tap_output,
+    }
 
 def test_e2e_create_file(
         monkeypatch, test_output_dir, sample_config, example1_schema_messages
@@ -425,6 +464,56 @@ def test_e2e_partition_cols(
     result = pd.read_parquet(
         test_output_dir / example1_schema_messages["stream_name"] / "field1=value1"
     )
+    assert expected.equals(result)
+
+def test_e2e_create_file_cast_by_format(
+        monkeypatch, test_output_dir, sample_config, example3_schema_messages_format_types
+):
+    """Test that the target creates a file with the expected records"""
+    monkeypatch.setattr("time.time", lambda: 1700000000)
+
+    target_sync_test(
+        TargetParquet(
+            config=sample_config | {
+                "cast_by_format": True
+            }),
+        input=StringIO(example3_schema_messages_format_types["messages"]),
+        finalize=True,
+    )
+
+    assert (
+            len(os.listdir(test_output_dir / example3_schema_messages_format_types["stream_name"])) == 1
+    )
+
+    expected = pd.DataFrame({"col_a": datetime(2024, 4, 6, 0, 2, 43, 280000),
+                             "col_b": 0.0009884326718747616,
+                             "col_c": "1234"}, index=[0])
+    result = pd.read_parquet(test_output_dir / example3_schema_messages_format_types["stream_name"])
+    assert expected.equals(result)
+
+def test_e2e_create_file_cast_by_format_disabled(
+        monkeypatch, test_output_dir, sample_config, example3_schema_messages_format_types
+):
+    """Test that the target creates a file with the expected records"""
+    monkeypatch.setattr("time.time", lambda: 1700000000)
+
+    target_sync_test(
+        TargetParquet(
+            config=sample_config | {
+                "cast_by_format": False
+            }),
+        input=StringIO(example3_schema_messages_format_types["messages"]),
+        finalize=True,
+    )
+
+    assert (
+            len(os.listdir(test_output_dir / example3_schema_messages_format_types["stream_name"])) == 1
+    )
+
+    expected = pd.DataFrame({"col_a": "2024-04-06 00:02:43.280000Z",
+                             "col_b": "0.0009884326718747616",
+                             "col_c": "1234"}, index=[0])
+    result = pd.read_parquet(test_output_dir / example3_schema_messages_format_types["stream_name"])
     assert expected.equals(result)
 
 

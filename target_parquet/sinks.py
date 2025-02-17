@@ -28,6 +28,8 @@ class ParquetSink(BatchSink):
         self.files_saved = 0
         self.flatten_max_level = self.config.get("max_flatten_level", 100)
 
+        cast_by_format = self.config.get("cast_by_format", False)
+
         # Extra fields
         self.extra_values = (
             dict([kv.split("=") for kv in self.config["extra_fields"].split(",")])
@@ -45,7 +47,7 @@ class ParquetSink(BatchSink):
             self.schema, max_level=self.flatten_max_level
         )
         self.flatten_schema.get("properties", {}).update(self.extra_values_types)
-        self.pyarrow_schema = flatten_schema_to_pyarrow_schema(self.flatten_schema)
+        self.pyarrow_schema = flatten_schema_to_pyarrow_schema(self.flatten_schema, cast_by_format)
 
         self.partition_cols = (
             self.config["partition_cols"].split(",")

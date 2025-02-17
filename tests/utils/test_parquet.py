@@ -50,8 +50,9 @@ def test_flatten_schema_to_pyarrow_schema():
             "boolean": {"type": ["null", "boolean"]},
         },
     }
+    cast_by_format = False
     flatten_schema_result = flatten_schema(schema, max_level=20)
-    pyarrow_schema = flatten_schema_to_pyarrow_schema(flatten_schema_result)
+    pyarrow_schema = flatten_schema_to_pyarrow_schema(flatten_schema_result, cast_by_format)
     expected_pyarrow_schema = pa.schema(
         [
             pa.field("str", pa.string()),
@@ -88,9 +89,10 @@ def test_no_flatten_schema_to_pyarrow():
             },
         },
     }
+    cast_by_format = False
 
     flatten_schema_result = flatten_schema(schema, max_level=0)
-    pyarrow_schema = flatten_schema_to_pyarrow_schema(flatten_schema_result)
+    pyarrow_schema = flatten_schema_to_pyarrow_schema(flatten_schema_result, cast_by_format)
     expected_pyarrow_schema = pa.schema(
         [
             pa.field("str", pa.string()),
@@ -126,8 +128,9 @@ def test_no_flatten_schema_to_pyarrow():
     ],
 )
 def test_field_type_to_pyarrow_field(field_name, input_types, expected_result):
+    cast_by_format = False
     result = _field_type_to_pyarrow_field(
-        field_name, input_types, ["example_field_anyof"]
+        field_name, input_types, ["example_field_anyof"], cast_by_format
     )
     assert result == expected_result
 
